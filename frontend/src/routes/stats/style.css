@@ -1,0 +1,19 @@
+.stats {
+  padding: 56px 20px;
+  min-height: 100%;
+  width: 100%;
+}
+
+.stats h1 {
+  text-align: center;
+}
+
+.fetcherror {
+  color: darkred;
+  font-weight: bold;
+}
+
+a.repourl {
+  margin: 5px;
+  background-color: #efefef;
+}
