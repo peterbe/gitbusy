@@ -1,12 +1,13 @@
-import { h, Component } from "preact";
-import { useState, useEffect } from "preact/hooks";
+import { Component, h } from "preact";
+import { useEffect, useRef, useState } from "preact/hooks";
+import { Link } from "preact-router/match";
 import { StackedBar } from "./roughviz-wrapper";
 import style from "./style";
 
 export default class Stats extends Component {
   state = {
-    loading: false,
     fetchError: null,
+    loading: false,
     stats: null
   };
 
@@ -26,7 +27,7 @@ export default class Stats extends Component {
       }
       if (response.ok) {
         const stats = await response.json();
-        this.setState({ fetchError: null, stats, loading: false });
+        this.setState({ fetchError: null, loading: false, stats });
       } else {
         this.setState({ fetchError: response, loading: false });
       }
@@ -46,13 +47,20 @@ export default class Stats extends Component {
                 class={style.repourl}
                 href={`https://github.com/${name}`}
                 key={name}
-                target="_blank"
                 rel="noopener"
+                target="_blank"
               >
                 {name}
               </a>
             );
           })}
+          <Link
+            href={`/?picked=${repos}`}
+            title="Add more"
+            class={style.addmore}
+          >
+            +
+          </Link>
         </h1>
         {loading && (
           <p>
@@ -85,38 +93,51 @@ function FetchError({ error }) {
 }
 
 function ShowStats({ stats }) {
-  const [roughness, setRoughness] = useState(3);
+  const [roughness, setRoughness] = useState(
+    JSON.parse(window.sessionStorage.getItem("default-roughness") || "3")
+  );
+  const containerRef = useRef();
   return (
-    <div class={style.chart}>
+    <div class={style.chart} ref={containerRef}>
       <StackedBar
-        data={stats.stacked_bar_data}
-        labels="login"
-        title="PR Review Requests"
         colors={["red", "orange", "blue", "maroon"]}
+        data={stats.stacked_bar_data}
+        fillStyle="cross-hatch"
+        fillWeight={0.35}
+        height={window.innerHeight * 0.7}
+        labels="login"
         // colors={["blue", "#f996ae", "skyblue", "#9ff4df"]}
         roughness={roughness}
-        height={window.innerHeight * 0.7}
-        width={window.innerWidth * 0.8}
-        fillWeight={0.35}
-        strokeWidth={0.5}
-        fillStyle="cross-hatch"
         stroke="black"
+        strokeWidth={0.5}
+        title="PR Review Requests"
+        width={
+          (containerRef.current
+            ? containerRef.current.clientWidth
+            : window.innerWidth) * 0.9
+        }
       />
       <p>
         <div>
-          <input
-            type="range"
-            id="id_roughness"
-            name="cowbell"
-            min="0"
-            max="10"
-            value={roughness}
-            step="1"
-            onChange={event => {
-              setRoughness(parseInt(event.target.value));
-            }}
-          />
           <label for="id_roughness">Roughness</label>
+          <br />
+          <input
+            id="id_roughness"
+            max="9"
+            min="0"
+            // name="roughness"
+            onInput={event => {
+              const newRoughness = parseInt(event.target.value);
+              setRoughness(newRoughness);
+              window.sessionStorage.setItem(
+                "default-roughness",
+                JSON.stringify(newRoughness)
+              );
+            }}
+            step="1"
+            type="range"
+            value={roughness}
+          />
         </div>
       </p>
       <PRList stats={stats} />
@@ -131,8 +152,8 @@ function PRList({ stats }) {
         const user = stats.users[login];
         const rows = [
           <dt key={`user:${login}`}>
-            <a href={user.html_url} target="_blank" rel="noopener">
-              <img src={user.avatar_url} width="64" class={style.avatar} />
+            <a href={user.html_url} rel="noopener" target="_blank">
+              <img class={style.avatar} src={user.avatar_url} width="64" />
               {/* {login} */}
             </a>
           </dt>
@@ -142,14 +163,14 @@ function PRList({ stats }) {
           rows.push(
             <dd key={`${login}:pr:${pr_id}`}>
               <a
-                href={pr.base.repo.html_url}
-                target="_blank"
-                rel="noopener"
                 class={style.repo}
+                href={pr.base.repo.html_url}
+                rel="noopener"
+                target="_blank"
               >
                 {pr.base.repo.full_name}
               </a>
-              <a href={pr.html_url} target="_blank" rel="noopener">
+              <a href={pr.html_url} rel="noopener" target="_blank">
                 <b>#{pr.number}</b> {pr.title}
               </a>{" "}
               <small>(weight {weight})</small>

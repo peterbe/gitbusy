@@ -1,3 +1,4 @@
+import json
 from collections import defaultdict
 from urllib.parse import urlencode
 
@@ -19,6 +20,9 @@ def search_repos(request):
     if not q:
         return JsonResponse({"error": "Empty search 'q'"}, status=400)
 
+    exact = json.loads(request.GET.get("exact", "false"))
+    if exact:
+        q = f"repo:{q}"
     results = _search_repos(
         q, sort=request.GET.get("sort"), order=request.GET.get("order")
     )
@@ -26,6 +30,7 @@ def search_repos(request):
 
 
 def _search_repos(q, sort=None, order=None, verbose=False):
+    # https://help.github.com/en/github/searching-for-information-on-github/searching-for-repositories
     url = "/search/repositories"
     params = {"q": q}
     if sort:

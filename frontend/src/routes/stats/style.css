@@ -28,3 +28,7 @@ a.repourl {
   font-weight: bold;
   margin-right: 6px;
 }
+
+a.addmore {
+  text-decoration: none;
+}

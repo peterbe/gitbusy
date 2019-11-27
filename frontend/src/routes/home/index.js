@@ -12,6 +12,36 @@ export default class Home extends Component {
     searching: false
   };
 
+  componentDidMount() {
+    if (this.props.picked && !this.state.picked.length) {
+      // E.g. the current url being `/?picked=foo,bar`
+      this.setState({ searching: true }, async () => {
+        // const values = await Promise.all(
+        //   this.props.picked.split(",").map(q =>
+        //     fetch(`/api/search-repos?q=${encodeURIComponent(q)}`)
+        //       .then(r => r.json())
+        //       .then(data => ({ data, q }))
+        //       .catch(error => ({ error, q }))
+        //   )
+        // );
+        // console.log(values);
+
+        const values = await Promise.all(
+          this.props.picked.split(",").map(async q => {
+            const response = await fetch(
+              `/api/search-repos?exact=true&q=${encodeURIComponent(q)}`
+            );
+            return await response.json();
+          })
+        );
+        const picked = values
+          .map(thing => (thing.items.length ? thing.items[0] : null))
+          .filter(x => !!x);
+        this.setState({ searchError: null, searching: false, picked });
+      });
+    }
+  }
+
   updateQ = e => {
     this.setState({ q: e.target.value }, () => {
       if (this.state.q.trim()) {

@@ -8,7 +8,14 @@ const wrap = rvComp => ({ prefix, ...props }) => {
   const [id] = useState(generateId(prefix || "roughviz-"));
   useEffect(() => {
     if (ref.current) {
-      new rvComp({
+      // console.log("this.chart?", this.chart);
+      if (this.chart) {
+        // [...ref.current.querySelector('svg,div')].forEach()
+        ref.current.querySelectorAll("*").forEach(n => n.remove());
+        // console.log(ref.current);
+        // this.chart.svg.selectAll("*").remove();
+      }
+      this.chart = new rvComp({
         element: "#" + id,
         ...props
       });
