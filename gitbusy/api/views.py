@@ -60,46 +60,50 @@ def open_prs(request):
     prs = stats["prs"]
     review_requests = stats["review_requests"]
 
-    print(users)
-
     flat = [(len(v), k, v) for k, v in review_requests.items()]
     flat.sort(reverse=True)
 
-    stacked_bar_data = {}
+    prs_per_user = {}
 
     def fmt_pr(pr):
         return f'#{pr["number"]}'
 
     for count, user_login, review_prs in flat:
-        print(
-            "USER",
-            user_login,
-            "HAS BEEN REQUESTED",
-            len(review_requests[user_login]),
-            "REVIEWS",
-        )
-        stacked_bar_data[user_login] = {}
+        # print(
+        #     "USER",
+        #     user_login,
+        #     "HAS BEEN REQUESTED",
+        #     len(review_requests[user_login]),
+        #     "REVIEWS",
+        # )
+        prs_per_user[user_login] = {}
         for pr_id in review_prs:
             weight = 10
             pr = prs[pr_id]
-            stacked_bar_data[user_login][fmt_pr(pr)] = weight
+            prs_per_user[user_login][pr_id] = weight
 
-            # from pprint import pprint
+    stacked_bar_data = []
+    for data in sorted(
+        [dict(v, login=k) for k, v in prs_per_user.items()],
+        key=lambda x: sum(v for k, v in x.items() if k != "login"),
+        reverse=True,
+    ):
+        block = {"login": data["login"]}
+        for pr_id, weight in data.items():
+            if pr_id != "login":
+                block[fmt_pr(prs[pr_id])] = weight
+        stacked_bar_data.append(block)
+    busiest_users = [x["login"] for x in stacked_bar_data]
 
-            # pprint(pr)
-            # raise Exception
-            print("\t", pr["html_url"], pr["title"])
-
-    stacked_bar_data = [dict(v, login=k) for k, v in stacked_bar_data.items()]
-    # print("RETURNRING")
-    # from pprint import pprint
-
-    # pprint(stacked_bar_data)
-
-    return JsonResponse({"data": stacked_bar_data})
-
-
-from pprint import pprint
+    return JsonResponse(
+        {
+            "stacked_bar_data": stacked_bar_data,
+            "busiest_users": busiest_users,
+            "prs_per_user": prs_per_user,
+            "users": users,
+            "prs": prs,
+        }
+    )
 
 
 def get_open_prs(repos):

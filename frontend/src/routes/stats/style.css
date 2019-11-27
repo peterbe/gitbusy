@@ -17,3 +17,14 @@ a.repourl {
   margin: 5px;
   background-color: #efefef;
 }
+
+.avatar {
+  width: 64px;
+  border-radius: 50%;
+}
+
+.prlist a.repo {
+  color: #666;
+  font-weight: bold;
+  margin-right: 6px;
+}
