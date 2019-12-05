@@ -21,12 +21,17 @@ a.repourl {
 .avatar {
   width: 64px;
   border-radius: 50%;
+  vertical-align: middle;
+  margin-right: 10px;
 }
 
 .prlist a.repo {
   color: #666;
   font-weight: bold;
   margin-right: 6px;
+}
+.prlist dt {
+  margin-top: 40px;
 }
 
 a.addmore {

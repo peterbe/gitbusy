@@ -38,7 +38,6 @@ def _search_repos(q, sort=None, order=None, verbose=False):
     if order:
         params["order"] = order
     url += "?" + urlencode(params)
-    results = _github_fetch(url)
 
     def simplify(item):
         keep = {}
@@ -48,14 +47,13 @@ def _search_repos(q, sort=None, order=None, verbose=False):
                 keep[key] = item.get(key)
         return keep
 
-    if not verbose:
-        results["items"] = [simplify(item) for item in results["items"]]
-
-    return results
+    for results, headers in _github_fetch(url):
+        if not verbose:
+            results["items"] = [simplify(item) for item in results["items"]]
+        return results
 
 
 def open_prs(request):
-    print(repr(request.GET.get("repos")))
     repos = ["mdn/kuma"]
     repos = request.GET["repos"].split(",")
     if [x for x in repos if not x.count("/")]:
@@ -83,26 +81,32 @@ def open_prs(request):
         # )
         prs_per_user[user_login] = {}
         for pr_id in review_prs:
-            weight = 10
-            pr = prs[pr_id]
+            weight = 1
+            # pr = prs[pr_id]
             prs_per_user[user_login][pr_id] = weight
 
     stacked_bar_data = []
+    bar_data = {"labels": [], "values": []}
     for data in sorted(
         [dict(v, login=k) for k, v in prs_per_user.items()],
         key=lambda x: sum(v for k, v in x.items() if k != "login"),
         reverse=True,
     ):
-        block = {"login": data["login"]}
-        for pr_id, weight in data.items():
-            if pr_id != "login":
-                block[fmt_pr(prs[pr_id])] = weight
-        stacked_bar_data.append(block)
-    busiest_users = [x["login"] for x in stacked_bar_data]
+        # block = {"login": data["login"]}
+        bar_data["labels"].append(data["login"])
+        bar_data["values"].append(sum([v for k, v in data.items() if k != "login"]))
+
+        # for pr_id, weight in data.items():
+        #     if pr_id != "login":
+        #         block[fmt_pr(prs[pr_id])] = weight
+        # stacked_bar_data.append(block)
+    # busiest_users = [x["login"] for x in stacked_bar_data]
+    busiest_users = list(bar_data["labels"])
 
     return JsonResponse(
         {
             "stacked_bar_data": stacked_bar_data,
+            "bar_data": bar_data,
             "busiest_users": busiest_users,
             "prs_per_user": prs_per_user,
             "users": users,
@@ -112,17 +116,13 @@ def open_prs(request):
 
 
 def get_open_prs(repos):
-    stats = defaultdict(list)
     review_requests = defaultdict(list)
     all_users = {}
     all_prs = {}
     for repo in repos:
         prs = fetch_open_prs(repo)
-        stats[repo].append(prs)
         for pr in prs:
 
-            # pprint(pr)
-            # pprint(pr["requested_reviewers"])
             all_prs[pr["id"]] = pr
             for user in pr["requested_reviewers"]:
                 review_requests[user["login"]].append(pr["id"])
@@ -145,24 +145,39 @@ def fetch_open_prs(repo):
     url = f"/repos/{owner}/{repo}/pulls"
     params = {"state": "open"}
     url += "?" + urlencode(params)
-    response = _github_fetch(url)
-    return response
-    # from pprint import pprint
-
-    # pprint(response)
-
-
-def fetch_requested_reviewers(repo, pull_number):
-    owner, repo = repo.split("/", 1)
-    url = f"/repos/{owner}/{repo}/pulls/{pull_number}/requested_reviewers"
-    return _github_fetch(url)
+    all_prs = []
+    for prs, headers in _github_fetch(url):
+        all_prs.extend(prs)
+    return all_prs
 
 
-def _github_fetch(url):
-    if url.startswith("/"):
-        url = f"https://api.github.com{url}"
-    r = requests.get(
-        url, {"headers": f"Authorization: token {settings.GITHUB_API_TOKEN}"}
-    )
-    r.raise_for_status()
-    return r.json()
+# def fetch_requested_reviewers(repo, pull_number):
+#     owner, repo = repo.split("/", 1)
+#     url = f"/repos/{owner}/{repo}/pulls/{pull_number}/requested_reviewers"
+#     return _github_fetch(url)
+
+
+def _github_fetch(url, max_pages=5):
+    def get(url):
+        if url.startswith("/"):
+            url = f"https://api.github.com{url}"
+        r = requests.get(
+            url,
+            {
+                "headers": f"Authorization: token {settings.GITHUB_API_TOKEN}",
+                "Accept": "application/vnd.github.shadow-cat-preview+json",
+            },
+        )
+        r.raise_for_status()
+        return r
+
+    page = 1
+    r = get(url)
+    yield (r.json(), r.headers)
+    while r.links and r.links["next"]:
+        page += 1
+        url = r.links["next"]["url"]
+        r = get(url)
+        yield (r.json(), r.headers)
+        if page >= max_pages:
+            break

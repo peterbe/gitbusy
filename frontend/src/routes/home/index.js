@@ -13,32 +13,27 @@ export default class Home extends Component {
   };
 
   componentDidMount() {
-    if (this.props.picked && !this.state.picked.length) {
-      // E.g. the current url being `/?picked=foo,bar`
-      this.setState({ searching: true }, async () => {
-        // const values = await Promise.all(
-        //   this.props.picked.split(",").map(q =>
-        //     fetch(`/api/search-repos?q=${encodeURIComponent(q)}`)
-        //       .then(r => r.json())
-        //       .then(data => ({ data, q }))
-        //       .catch(error => ({ error, q }))
-        //   )
-        // );
-        // console.log(values);
-
-        const values = await Promise.all(
-          this.props.picked.split(",").map(async q => {
-            const response = await fetch(
-              `/api/search-repos?exact=true&q=${encodeURIComponent(q)}`
-            );
-            return await response.json();
-          })
-        );
-        const picked = values
-          .map(thing => (thing.items.length ? thing.items[0] : null))
-          .filter(x => !!x);
-        this.setState({ searchError: null, searching: false, picked });
-      });
+    if (!this.state.picked.length) {
+      if (this.props.picked || localStorage.getItem("picked")) {
+        const names = this.props.picked
+          ? this.props.picked.split(",")
+          : JSON.parse(localStorage.getItem("picked"));
+        // E.g. the current url being `/?picked=foo,bar`
+        this.setState({ searching: true }, async () => {
+          const values = await Promise.all(
+            names.map(async q => {
+              const response = await fetch(
+                `/api/search-repos?exact=true&q=${encodeURIComponent(q)}`
+              );
+              return await response.json();
+            })
+          );
+          const picked = values
+            .map(thing => (thing.items.length ? thing.items[0] : null))
+            .filter(x => !!x);
+          this.setState({ searchError: null, searching: false, picked });
+        });
+      }
     }
   }
 
@@ -85,7 +80,14 @@ export default class Home extends Component {
       picked = this.state.picked.slice(0);
       picked.unshift(found);
     }
-    this.setState({ picked, results: null, q: "" });
+    this.setState({ picked, results: null, q: "" }, () => {
+      const names = this.state.picked.map(x => x.full_name);
+      if (names.length) {
+        window.localStorage.setItem("picked", JSON.stringify(names));
+      } else if (window.localStorage.setItem("picked")) {
+        console.log("DELETE?", window.localStorage.getItem("picked"));
+      }
+    });
   };
 
   render(_, { q, picked, results, searchError, searching }) {
@@ -117,7 +119,9 @@ export default class Home extends Component {
         {searching && <small>Searching...</small>}
         <p>{q}</p>
 
-        {picked.length ? <ShowPickedRepos repos={picked} /> : null}
+        {picked.length ? (
+          <ShowPickedRepos repos={picked} removeRepo={this.togglePicked} />
+        ) : null}
       </div>
     );
   }
@@ -140,7 +144,7 @@ function ShowSearchError({ error }) {
   );
 }
 
-function ShowPickedRepos({ repos }) {
+function ShowPickedRepos({ repos, removeRepo }) {
   const fullNames = repos.map(r => r.full_name).sort();
   const allURL = `/stats/${encodeURIComponent(fullNames.join(","))}`;
   return (
@@ -150,6 +154,16 @@ function ShowPickedRepos({ repos }) {
         {repos.map(repo => {
           return (
             <li>
+              <a
+                title="Remove"
+                style={{ float: "right" }}
+                onClick={event => {
+                  event.preventDefault();
+                  removeRepo(repo);
+                }}
+              >
+                🗑
+              </a>
               <Link href={`/stats/${encodeURIComponent(repo.full_name)}`}>
                 <b>{repo.full_name}</b>
               </Link>
