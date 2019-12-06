@@ -48,26 +48,28 @@ export default class Home extends Component {
   };
 
   search = () => {
-    const { q } = this.state;
-    this.setState({ searching: true }, async () => {
-      let response;
-      try {
-        response = await fetch(`/api/search-repos?q=${encodeURIComponent(q)}`);
-      } catch (ex) {
-        return this.setState({ searchError: ex, searching: false });
-      }
+    this.setState({ searching: true }, this.startSearch);
+  };
 
-      if (response.ok) {
-        let results = await response.json();
-        this.setState({
-          searchError: null,
-          searching: false,
-          results
-        });
-      } else {
-        this.setState({ searchError: response, searching: false });
-      }
-    });
+  startSearch = async () => {
+    const { q } = this.state;
+    let response;
+    try {
+      response = await fetch(`/api/search-repos?q=${encodeURIComponent(q)}`);
+    } catch (ex) {
+      return this.setState({ searchError: ex, searching: false });
+    }
+
+    if (response.ok) {
+      let results = await response.json();
+      this.setState({
+        searchError: null,
+        searching: false,
+        results
+      });
+    } else {
+      this.setState({ searchError: response, searching: false });
+    }
   };
 
   throttledSearch = throttle(500, this.search);

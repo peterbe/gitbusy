@@ -17,13 +17,13 @@
     "eslint": "6.7.2",
     "eslint-config-synacor": "3.0.5",
     "if-env": "1.0.4",
-    "preact-cli": "2.2.1"
+    "preact-cli": "2.2.1",
+    "preact-cli-plugin-fast-async": "1.0.1"
   },
   "dependencies": {
     "preact": "10.0.5",
     "preact-compat": "3.19.0",
     "preact-router": "3.1.0",
-    "react-roughviz": "0.1.6",
     "rough-viz": "1.0.5",
     "throttle-debounce": "2.1.0"
   }
