@@ -1,0 +1,12 @@
+{
+  "name": "gitbusy",
+  "license": "MIT",
+  "engines": {
+    "node": "12",
+    "yarn": "1.19"
+  },
+  "scripts": {
+    "build": "yarn --cwd client install && yarn --cwd client build",
+    "deploy": "echo 'cp -a /build/. public/'"
+  }
+}
