@@ -2,7 +2,7 @@
   "name": "frontend",
   "version": "1.0.0",
   "main": "index.js",
-  "license": "MIT",
+  "license": "MPL-2.0",
   "scripts": {
     "start": "if-env NODE_ENV=production && yarn run -s serve || yarn run -s dev",
     "build": "preact build",
