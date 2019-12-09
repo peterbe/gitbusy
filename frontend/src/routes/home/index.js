@@ -25,13 +25,20 @@ export default class Home extends Component {
               const response = await fetch(
                 `/api/search-repos?exact=true&q=${encodeURIComponent(q)}`
               );
+              if (!response.ok) {
+                throw new Error(`${response.status} on ${response.url}`);
+              }
               return await response.json();
             })
-          );
-          const picked = values
-            .map(thing => (thing.items.length ? thing.items[0] : null))
-            .filter(x => !!x);
-          this.setState({ searchError: null, searching: false, picked });
+          ).catch(err => {
+            this.setState({ searchError: err, searching: false });
+          });
+          if (values) {
+            const picked = values
+              .map(thing => (thing.items.length ? thing.items[0] : null))
+              .filter(x => !!x);
+            this.setState({ searchError: null, searching: false, picked });
+          }
         });
       }
     }
@@ -148,7 +155,9 @@ function ShowSearchError({ error }) {
 
 function ShowPickedRepos({ repos, removeRepo }) {
   const fullNames = repos.map(r => r.full_name).sort();
-  const allURL = `/stats/${encodeURIComponent(fullNames.join(","))}`;
+  const allURL = `/stats/pr-review-requests/${encodeURIComponent(
+    fullNames.join(",")
+  )}`;
   return (
     <div class={style.pickedrepos}>
       <h3>Picked repos</h3>
@@ -166,7 +175,11 @@ function ShowPickedRepos({ repos, removeRepo }) {
               >
                 🗑
               </a>
-              <Link href={`/stats/${encodeURIComponent(repo.full_name)}`}>
+              <Link
+                href={`/stats/pr-review-requests/${encodeURIComponent(
+                  repo.full_name
+                )}`}
+              >
                 <b>{repo.full_name}</b>
               </Link>
               <br />

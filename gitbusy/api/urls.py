@@ -7,5 +7,5 @@ app_name = "api"
 urlpatterns = [
     path("hello", views.hello),
     path("search-repos", views.search_repos),
-    path("open-prs", views.open_prs),
+    path("pr-review-requests", views.pr_review_requests),
 ]

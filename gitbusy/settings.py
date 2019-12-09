@@ -25,7 +25,7 @@ SECRET_KEY = config("SECRET_KEY", default="secret")
 DEBUG = config("DEBUG", default=False, cast=bool)
 DEBUG_PROPAGATE_EXCEPTIONS = config("DEBUG_PROPAGATE_EXCEPTIONS", False, cast=bool)
 
-ALLOWED_HOSTS = config("ALLOWED_HOSTS", cast=Csv(), default="")
+ALLOWED_HOSTS = config("ALLOWED_HOSTS", cast=Csv(), default="0.0.0.0,localhost")
 
 # Generate a key here: https://github.com/settings/tokens
 GITHUB_API_TOKEN = config("GITHUB_API_TOKEN")
@@ -45,13 +45,16 @@ INSTALLED_APPS = [
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
-    "django.contrib.sessions.middleware.SessionMiddleware",
+    "whitenoise.middleware.WhiteNoiseMiddleware",
+    # "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
-    "django.middleware.csrf.CsrfViewMiddleware",
+    # "django.middleware.csrf.CsrfViewMiddleware",
     # 'django.contrib.auth.middleware.AuthenticationMiddleware',
     # 'django.contrib.messages.middleware.MessageMiddleware',
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
 ]
+
+WHITENOISE_INDEX_FILE = True
 
 ROOT_URLCONF = "gitbusy.urls"
 
@@ -102,7 +105,7 @@ USE_TZ = True
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/dev/howto/static-files/
 
-STATIC_URL = "/static/"
+STATIC_URL = "/"
 
 # https://github.com/niwinz/django-redis/pull/394
 # CACHES = {
@@ -120,3 +123,10 @@ CACHES = {
         "LOCATION": "unique-snowflake",
     }
 }
+
+
+STATIC_ROOT = BASE_DIR / "frontend" / "build"
+if not STATIC_ROOT.exists():
+    import warnings
+
+    warnings.warn(f"{STATIC_ROOT} does NOT exist. Might cause problems with Whitenoise")

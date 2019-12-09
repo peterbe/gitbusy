@@ -4,6 +4,7 @@ from urllib.parse import urlencode
 
 import requests
 import requests_cache
+from django.views.decorators.cache import cache_control
 from django.conf import settings
 from django.http import JsonResponse, HttpResponseBadRequest
 
@@ -15,6 +16,7 @@ def hello(request):
     return JsonResponse({"ok": True})
 
 
+@cache_control(max_age=settings.DEBUG and 0 or 5 * 60, public=True)
 def search_repos(request):
     q = request.GET.get("q", "").strip()
     if not q:
@@ -53,7 +55,8 @@ def _search_repos(q, sort=None, order=None, verbose=False):
         return results
 
 
-def open_prs(request):
+@cache_control(max_age=settings.DEBUG and 0 or 5 * 60, public=True)
+def pr_review_requests(request):
     repos = ["mdn/kuma"]
     repos = request.GET["repos"].split(",")
     if [x for x in repos if not x.count("/")]:
@@ -72,17 +75,9 @@ def open_prs(request):
         return f'#{pr["number"]}'
 
     for count, user_login, review_prs in flat:
-        # print(
-        #     "USER",
-        #     user_login,
-        #     "HAS BEEN REQUESTED",
-        #     len(review_requests[user_login]),
-        #     "REVIEWS",
-        # )
         prs_per_user[user_login] = {}
         for pr_id in review_prs:
             weight = 1
-            # pr = prs[pr_id]
             prs_per_user[user_login][pr_id] = weight
 
     stacked_bar_data = []

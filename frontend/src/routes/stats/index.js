@@ -19,7 +19,7 @@ export default class Stats extends Component {
 
   fetch = repos => {
     this.setState({ loading: true }, async () => {
-      let url = `/api/open-prs?repos=${repos}`;
+      let url = `/api/pr-review-requests?repos=${repos}`;
       let response;
       try {
         response = await fetch(url);
