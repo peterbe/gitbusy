@@ -5,6 +5,6 @@
     "yarn": "1.x"
   },
   "scripts": {
-    "postinstall": "cd frontend && yarn install && ls -l node_modules && yarn build"
+    "postinstall": "cd frontend && yarn install && ls -l node_modules/.bin && echo $PATH && yarn build"
   }
 }
