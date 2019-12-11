@@ -5,6 +5,6 @@
     "yarn": "1.x"
   },
   "scripts": {
-    "build": "cd frontend && yarn install --verbose && yarn build"
+    "postinstall": "cd frontend && yarn install && yarn build"
   }
 }
