@@ -6,7 +6,6 @@
     "yarn": "1.19"
   },
   "scripts": {
-    "build": "yarn --cwd client install && yarn --cwd client build",
-    "deploy": "echo 'cp -a /build/. public/'"
+    "build": "yarn --cwd frontend install && yarn --cwd frontend build"
   }
 }
