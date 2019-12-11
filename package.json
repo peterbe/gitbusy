@@ -5,6 +5,6 @@
     "yarn": "1.x"
   },
   "scripts": {
-    "build": "cd frontend && yarn install && ls -l node_modules/.bin && yarn build"
+    "build": "cd frontend && yarn install --verbose && yarn build"
   }
 }
