@@ -1,0 +1,6 @@
+*~
+.git
+requests_cache.sqlite
+frontend/node_modules/
+frontend/yarn-error.log
+frontend/build
