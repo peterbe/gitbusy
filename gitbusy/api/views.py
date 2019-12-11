@@ -8,8 +8,9 @@ from django.views.decorators.cache import cache_control
 from django.conf import settings
 from django.http import JsonResponse, HttpResponseBadRequest
 
-if settings.DEBUG:
-    requests_cache.install_cache("requests_cache")
+
+if settings.CACHE_REQUESTS:
+    requests_cache.install_cache(settings.CACHE_REQUESTS_FILE)
 
 
 def hello(request):

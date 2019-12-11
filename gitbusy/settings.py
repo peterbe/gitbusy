@@ -130,3 +130,6 @@ if not STATIC_ROOT.exists():
     import warnings
 
     warnings.warn(f"{STATIC_ROOT} does NOT exist. Might cause problems with Whitenoise")
+
+CACHE_REQUESTS = config("CACHE_REQUESTS", default=DEBUG, cast=bool)
+CACHE_REQUESTS_FILE = config("CACHE_REQUESTS_FILE", default="/tmp/requests_cache")

@@ -2,18 +2,17 @@ FROM node:12 as frontend
 
 COPY . /app
 WORKDIR /app
-RUN pwd
-RUN ls -l
 RUN cd frontend && yarn install && yarn build
-RUN pwd
-RUN ls -l
-RUN ls -l frontend
+
+
 
 FROM python:3.8-slim
 
 WORKDIR /app
 
 RUN groupadd --gid 10001 app && useradd -g app --uid 10001 --shell /usr/sbin/nologin app
+RUN chown app:app /tmp
+
 RUN apt-get update && \
     apt-get upgrade -y && \
     apt-get install -y --no-install-recommends \
@@ -22,9 +21,8 @@ RUN apt-get update && \
 # Gotta try moving this to poetry instead!
 COPY ./requirements.txt /app/requirements.txt
 
-RUN pwd
-RUN ls -l
 RUN pip install --upgrade --no-cache-dir -r requirements.txt
+
 
 COPY . /app
 
