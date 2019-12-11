@@ -1,11 +1,11 @@
 {
   "name": "gitbusy",
-  "license": "MIT",
+  "license": "MPL-2.0",
   "engines": {
-    "node": "12",
-    "yarn": "1.19"
+    "node": ">=12",
+    "yarn": ">=1.19"
   },
   "scripts": {
-    "build": "cd frontend && yarn install && ls -l node_modules/.bin && yarn build"
+    "build": "ls -l node_modules && cd frontend && yarn install && ls -l node_modules/.bin && yarn build"
   }
 }
