@@ -3,13 +3,16 @@ import { Link } from "preact-router/match";
 import { throttle } from "throttle-debounce";
 import style from "./style";
 
+import { DisplayRateLimited } from "../../utils";
+
 export default class Home extends Component {
   state = {
     q: "",
     results: null,
     picked: [],
     searchError: null,
-    searching: false
+    searching: false,
+    rateLimited: null
   };
 
   componentDidMount() {
@@ -33,10 +36,22 @@ export default class Home extends Component {
           ).catch(err => {
             this.setState({ searchError: err, searching: false });
           });
+
           if (values) {
+            // Sort values by the most recently updated ratelimit since it was
+            // collected asynchronous.
+            const ratelimiteds = values.map(v => v._ratelimited);
+            ratelimiteds.sort((a, b) => b.updated - a.updated);
+            this.setState({ rateLimited: ratelimiteds[0] }, () => {
+              console.log(this.state.rateLimited);
+            });
+
             const picked = values
-              .map(thing => (thing.items.length ? thing.items[0] : null))
+              .map(thing =>
+                thing.results.items.length ? thing.results.items[0] : null
+              )
               .filter(x => !!x);
+
             this.setState({ searchError: null, searching: false, picked });
           }
         });
@@ -68,11 +83,13 @@ export default class Home extends Component {
     }
 
     if (response.ok) {
-      let results = await response.json();
+      let searchResults = await response.json();
+
       this.setState({
         searchError: null,
         searching: false,
-        results
+        results: searchResults.results,
+        rateLimited: searchResults._ratelimited
       });
     } else {
       this.setState({ searchError: response, searching: false });
@@ -99,7 +116,7 @@ export default class Home extends Component {
     });
   };
 
-  render(_, { q, picked, results, searchError, searching }) {
+  render(_, { q, picked, results, searchError, searching, rateLimited }) {
     return (
       <div class={style.home}>
         <h2>Find your repos</h2>
@@ -131,6 +148,8 @@ export default class Home extends Component {
         {picked.length ? (
           <ShowPickedRepos repos={picked} removeRepo={this.togglePicked} />
         ) : null}
+
+        <DisplayRateLimited rateLimited={rateLimited} />
       </div>
     );
   }

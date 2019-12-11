@@ -1,0 +1,9 @@
+.ratelimited {
+  margin-top: 50px;
+  border-top: 1px solid #efefef;
+}
+
+.ratelimited p {
+  text-align: center;
+  font-size: 70%;
+}

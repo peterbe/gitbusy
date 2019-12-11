@@ -1,13 +1,16 @@
+import dataclasses
 import json
+import time
 from collections import defaultdict
 from urllib.parse import urlencode
 
 import requests
 import requests_cache
-from django.views.decorators.cache import cache_control
 from django.conf import settings
-from django.http import JsonResponse, HttpResponseBadRequest
-
+from django.core.serializers.json import DjangoJSONEncoder
+from django.http import HttpResponseBadRequest, JsonResponse
+from django.views.decorators.cache import cache_control
+from requests.structures import CaseInsensitiveDict
 
 if settings.CACHE_REQUESTS:
     requests_cache.install_cache(settings.CACHE_REQUESTS_FILE)
@@ -15,6 +18,31 @@ if settings.CACHE_REQUESTS:
 
 def hello(request):
     return JsonResponse({"ok": True})
+
+
+class EnhancedJSONEncoder(DjangoJSONEncoder):
+    def default(self, o):
+        if dataclasses.is_dataclass(o):
+            return dataclasses.asdict(o)
+        return super().default(o)
+
+
+@dataclasses.dataclass
+class RateLimited:
+    limit: int = 0
+    remaining: int = 0
+    reset: int = None
+    updated: int = None
+
+    def update_from_headers(self, headers: CaseInsensitiveDict):
+        # print(repr(headers.get("x-ratelimit-limit")))
+        # print(repr(headers.get("x-ratelimit-remaining")))
+        # print(repr(headers.get("x-ratelimit-reset")))
+        self.limit = int(headers.get("x-ratelimit-limit"))
+        self.remaining = int(headers.get("x-ratelimit-remaining"))
+        self.reset = int(headers.get("x-ratelimit-reset"))
+        self.updated = int(time.time() * 1000)
+        # print((self.limit, self.remaining, self.reset, self.updated))
 
 
 @cache_control(max_age=settings.DEBUG and 0 or 5 * 60, public=True)
@@ -26,10 +54,12 @@ def search_repos(request):
     exact = json.loads(request.GET.get("exact", "false"))
     if exact:
         q = f"repo:{q}"
-    results = _search_repos(
+    results, ratelimited = _search_repos(
         q, sort=request.GET.get("sort"), order=request.GET.get("order")
     )
-    return JsonResponse(results)
+    return JsonResponse(
+        {"results": results, "_ratelimited": ratelimited}, encoder=EnhancedJSONEncoder
+    )
 
 
 def _search_repos(q, sort=None, order=None, verbose=False):
@@ -50,10 +80,13 @@ def _search_repos(q, sort=None, order=None, verbose=False):
                 keep[key] = item.get(key)
         return keep
 
+    ratelimited = RateLimited()
+
     for results, headers in _github_fetch(url):
         if not verbose:
             results["items"] = [simplify(item) for item in results["items"]]
-        return results
+        ratelimited.update_from_headers(headers)
+        return results, ratelimited
 
 
 @cache_control(max_age=settings.DEBUG and 0 or 5 * 60, public=True)
@@ -88,15 +121,9 @@ def pr_review_requests(request):
         key=lambda x: sum(v for k, v in x.items() if k != "login"),
         reverse=True,
     ):
-        # block = {"login": data["login"]}
         bar_data["labels"].append(data["login"])
         bar_data["values"].append(sum([v for k, v in data.items() if k != "login"]))
 
-        # for pr_id, weight in data.items():
-        #     if pr_id != "login":
-        #         block[fmt_pr(prs[pr_id])] = weight
-        # stacked_bar_data.append(block)
-    # busiest_users = [x["login"] for x in stacked_bar_data]
     busiest_users = list(bar_data["labels"])
 
     return JsonResponse(
@@ -124,15 +151,6 @@ def get_open_prs(repos):
                 review_requests[user["login"]].append(pr["id"])
                 all_users[user["login"]] = user
 
-            # print("============================================")
-            # review_comments = _github_fetch(pr["review_comments_url"])
-
-            # pprint(review_comments)
-            # pull_number = pr["number"]
-            # requested_reviewers = fetch_requested_reviewers(repo, pull_number)
-            # pprint(requested_reviewers)
-            # break
-
     return {"review_requests": review_requests, "users": all_users, "prs": all_prs}
 
 
@@ -145,12 +163,6 @@ def fetch_open_prs(repo):
     for prs, headers in _github_fetch(url):
         all_prs.extend(prs)
     return all_prs
-
-
-# def fetch_requested_reviewers(repo, pull_number):
-#     owner, repo = repo.split("/", 1)
-#     url = f"/repos/{owner}/{repo}/pulls/{pull_number}/requested_reviewers"
-#     return _github_fetch(url)
 
 
 def _github_fetch(url, max_pages=5):

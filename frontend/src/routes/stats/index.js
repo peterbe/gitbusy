@@ -9,7 +9,8 @@ export default class Stats extends Component {
   state = {
     fetchError: null,
     loading: false,
-    stats: null
+    stats: null,
+    rateLimited: null
   };
 
   componentDidMount() {

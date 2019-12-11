@@ -12,6 +12,19 @@ Create a `.env` file and put into it [a GitHub personal access token](https://gi
 
     echo 'GITHUB_API_TOKEN=xxxxxxxx' > .env
 
+Install the Python dependencies and start Django:
+
+    pip install -r requirements.txt
+    ./manage.py runserver 0.0.0.0:8000
+
+In another terminal install the Node dependencies and start Preact:
+
+    cd frontend
+    yarn install
+    PORT=3000 yarn start
+
+Now, go to `http://localhost:3000` and play.
+
 ## Using docker
 
 To build:
