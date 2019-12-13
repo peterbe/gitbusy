@@ -13,6 +13,7 @@ https://docs.djangoproject.com/en/dev/ref/settings/
 from pathlib import Path
 
 from decouple import config, Csv
+from django.core.exceptions import ImproperlyConfigured
 
 BASE_DIR = Path(__file__).parent.parent
 
@@ -30,6 +31,10 @@ ALLOWED_HOSTS = config("ALLOWED_HOSTS", cast=Csv(), default="0.0.0.0,localhost")
 # Generate a key here: https://github.com/settings/tokens
 GITHUB_API_TOKEN = config("GITHUB_API_TOKEN")
 
+if not DEBUG and not GITHUB_API_TOKEN:
+    raise ImproperlyConfigured(
+        "If you're not in DEBUG mode, you have to GITHUB_API_TOKEN"
+    )
 
 # Application definition
 
@@ -52,6 +57,7 @@ MIDDLEWARE = [
     # 'django.contrib.auth.middleware.AuthenticationMiddleware',
     # 'django.contrib.messages.middleware.MessageMiddleware',
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
+    "gitbusy.api.middleware.RateLimitedMiddleware",
 ]
 
 WHITENOISE_INDEX_FILE = True

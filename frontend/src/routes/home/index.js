@@ -156,6 +156,7 @@ export default class Home extends Component {
 }
 
 function ShowSearchError({ error }) {
+  console.log("ERROR:", error, error instanceof window.Response);
   return (
     <div class={style.searcherror}>
       <h4>Search Error</h4>

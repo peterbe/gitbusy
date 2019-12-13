@@ -11,6 +11,8 @@ from django.core.serializers.json import DjangoJSONEncoder
 from django.http import HttpResponseBadRequest, JsonResponse
 from django.views.decorators.cache import cache_control
 from requests.structures import CaseInsensitiveDict
+from gitbusy.api.exceptions import RateLimitedError
+
 
 if settings.CACHE_REQUESTS:
     requests_cache.install_cache(settings.CACHE_REQUESTS_FILE)
@@ -35,14 +37,10 @@ class RateLimited:
     updated: int = None
 
     def update_from_headers(self, headers: CaseInsensitiveDict):
-        # print(repr(headers.get("x-ratelimit-limit")))
-        # print(repr(headers.get("x-ratelimit-remaining")))
-        # print(repr(headers.get("x-ratelimit-reset")))
         self.limit = int(headers.get("x-ratelimit-limit"))
         self.remaining = int(headers.get("x-ratelimit-remaining"))
         self.reset = int(headers.get("x-ratelimit-reset"))
         self.updated = int(time.time() * 1000)
-        # print((self.limit, self.remaining, self.reset, self.updated))
 
 
 @cache_control(max_age=settings.DEBUG and 0 or 5 * 60, public=True)
@@ -176,6 +174,12 @@ def _github_fetch(url, max_pages=5):
                 "Accept": "application/vnd.github.shadow-cat-preview+json",
             },
         )
+        if r.status_code == 403:
+            if "rate limit exceeded" in r.json().get("message", ""):
+                ratelimited = RateLimited()
+                ratelimited.update_from_headers(r.headers)
+                raise RateLimitedError(ratelimited)
+
         r.raise_for_status()
         return r
 
