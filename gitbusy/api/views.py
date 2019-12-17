@@ -52,15 +52,16 @@ def search_repos(request):
     exact = json.loads(request.GET.get("exact", "false"))
     if exact:
         q = f"repo:{q}"
-    results, ratelimited = _search_repos(
-        q, sort=request.GET.get("sort"), order=request.GET.get("order")
+    ratelimited = RateLimited()
+    results = _search_repos(
+        q, ratelimited, sort=request.GET.get("sort"), order=request.GET.get("order")
     )
     return JsonResponse(
         {"results": results, "_ratelimited": ratelimited}, encoder=EnhancedJSONEncoder
     )
 
 
-def _search_repos(q, sort=None, order=None, verbose=False):
+def _search_repos(q, ratelimited, sort=None, order=None, verbose=False):
     # https://help.github.com/en/github/searching-for-information-on-github/searching-for-repositories
     url = "/search/repositories"
     params = {"q": q}
@@ -78,13 +79,11 @@ def _search_repos(q, sort=None, order=None, verbose=False):
                 keep[key] = item.get(key)
         return keep
 
-    ratelimited = RateLimited()
-
     for results, headers in _github_fetch(url):
         if not verbose:
             results["items"] = [simplify(item) for item in results["items"]]
         ratelimited.update_from_headers(headers)
-        return results, ratelimited
+        return results
 
 
 @cache_control(max_age=settings.DEBUG and 0 or 5 * 60, public=True)
@@ -97,6 +96,7 @@ def pr_review_requests(request):
     users = stats["users"]
     prs = stats["prs"]
     review_requests = stats["review_requests"]
+    ratelimited = stats["ratelimited"]
 
     flat = [(len(v), k, v) for k, v in review_requests.items()]
     flat.sort(reverse=True)
@@ -132,7 +132,9 @@ def pr_review_requests(request):
             "prs_per_user": prs_per_user,
             "users": users,
             "prs": prs,
-        }
+            "_ratelimited": ratelimited,
+        },
+        encoder=EnhancedJSONEncoder,
     )
 
 
@@ -140,25 +142,31 @@ def get_open_prs(repos):
     review_requests = defaultdict(list)
     all_users = {}
     all_prs = {}
+    ratelimited = RateLimited()
     for repo in repos:
-        prs = fetch_open_prs(repo)
+        prs = fetch_open_prs(repo, ratelimited)
         for pr in prs:
-
             all_prs[pr["id"]] = pr
             for user in pr["requested_reviewers"]:
                 review_requests[user["login"]].append(pr["id"])
                 all_users[user["login"]] = user
 
-    return {"review_requests": review_requests, "users": all_users, "prs": all_prs}
+    return {
+        "review_requests": review_requests,
+        "users": all_users,
+        "prs": all_prs,
+        "ratelimited": ratelimited,
+    }
 
 
-def fetch_open_prs(repo):
+def fetch_open_prs(repo, ratelimited):
     owner, repo = repo.split("/", 1)
     url = f"/repos/{owner}/{repo}/pulls"
     params = {"state": "open"}
     url += "?" + urlencode(params)
     all_prs = []
     for prs, headers in _github_fetch(url):
+        ratelimited.update_from_headers(headers)
         all_prs.extend(prs)
     return all_prs
 

@@ -5,6 +5,8 @@ import { Link } from "preact-router/match";
 import { BarH } from "./roughviz-wrapper";
 import style from "./style";
 
+import { DisplayRateLimited } from "../../utils";
+
 export default class Stats extends Component {
   state = {
     fetchError: null,
@@ -29,15 +31,23 @@ export default class Stats extends Component {
       }
       if (response.ok) {
         const stats = await response.json();
-        this.setState({ fetchError: null, loading: false, stats });
+        this.setState({
+          fetchError: null,
+          loading: false,
+          stats,
+          rateLimited: stats._ratelimited
+        });
       } else {
-        this.setState({ fetchError: response, loading: false });
+        this.setState({
+          fetchError: response,
+          loading: false
+        });
       }
     });
   };
 
   // Note: `repos` comes from the URL, courtesy of our router
-  render({ repos }, { loading, fetchError, stats }) {
+  render({ repos }, { loading, fetchError, stats, rateLimited }) {
     const split = repos.split(",");
     return (
       <div class={style.stats}>
@@ -72,6 +82,8 @@ export default class Stats extends Component {
         {fetchError && <FetchError error={fetchError} />}
 
         {stats && <ShowStats stats={stats} />}
+
+        <DisplayRateLimited rateLimited={rateLimited} />
       </div>
     );
   }

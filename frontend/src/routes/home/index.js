@@ -1,6 +1,6 @@
 import { h, Component } from "preact";
 import { Link } from "preact-router/match";
-import { throttle } from "throttle-debounce";
+import { debounce } from "throttle-debounce";
 import style from "./style";
 
 import { DisplayRateLimited } from "../../utils";
@@ -96,7 +96,7 @@ export default class Home extends Component {
     }
   };
 
-  throttledSearch = throttle(500, this.search);
+  throttledSearch = debounce(400, this.search);
 
   togglePicked = found => {
     let picked;
@@ -143,7 +143,6 @@ export default class Home extends Component {
           />
         )}
         {searching && <small>Searching...</small>}
-        <p>{q}</p>
 
         {picked.length ? (
           <ShowPickedRepos repos={picked} removeRepo={this.togglePicked} />
