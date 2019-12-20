@@ -36,6 +36,10 @@ if not DEBUG and not GITHUB_API_TOKEN:
         "If you're not in DEBUG mode, you have to GITHUB_API_TOKEN"
     )
 
+
+# https://docs.djangoproject.com/en/3.0/ref/settings/#secure-ssl-redirect
+SECURE_SSL_REDIRECT = config("SECURE_SSL_REDIRECT", cast=bool, default=not DEBUG)
+
 # Application definition
 
 INSTALLED_APPS = [
