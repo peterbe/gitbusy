@@ -133,9 +133,7 @@ function sessionRetrieve(key, default_, json = false) {
 
 function ShowStats({ stats }) {
   const [roughness, setRoughness] = useState(
-    sessionRetrieve("default-roughness"),
-    3,
-    true
+    sessionRetrieve("default-roughness", 3, true)
   );
   const [fillStyle, setFillStyle] = useState(
     sessionRetrieve("default-fillstyle", FILL_STYLE_OPTIONS[0])
