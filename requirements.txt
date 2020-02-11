@@ -1,7 +1,7 @@
 # To update these, install `pip install piprot` and then run `piprot -o` and
 # manually update the versions.
 
-Django==3.0
+Django==3.0.3
 uvicorn==0.10.8
 python-decouple==3.3
 requests[security]==2.22.0
