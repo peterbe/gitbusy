@@ -2,7 +2,7 @@
 # manually update the versions.
 
 Django==3.0.7
-uvicorn==0.10.8
+uvicorn==0.11.7
 python-decouple==3.3
 requests[security]==2.22.0
 requests-cache==0.5.2
